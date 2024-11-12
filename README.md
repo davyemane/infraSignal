@@ -1,6 +1,6 @@
-# API de Gestion des Utilisateurs avec WebSocket
+# API de Gestion des Utilisateurs et Points Sensibles avec WebSocket
 
-Cette API permet de gérer l'authentification des utilisateurs et inclut des fonctionnalités de notifications en temps réel via WebSocket.
+Cette API permet de gérer l'authentification des utilisateurs, les points sensibles sur la carte et inclut des fonctionnalités de notifications en temps réel via WebSocket.
 
 ## 📋 Prérequis
 
@@ -8,6 +8,7 @@ Cette API permet de gérer l'authentification des utilisateurs et inclut des fon
 - Django 4.0+
 - Django Channels
 - Redis (pour les WebSockets)
+- PostGIS (pour les fonctionnalités géospatiales)
 
 ## 🚀 Installation
 
@@ -42,80 +43,106 @@ python manage.py runserver
 
 ## 🔑 Authentification API
 
-### Inscription
+[Section authentification existante reste identique...]
 
-**Endpoint**: `POST /api/register/`
+## 📍 API Points Sensibles
+
+### Types de Problèmes
+
+#### Lister les types de problèmes
+**Endpoint**: `GET /api/problem-types/`
+
+**Réponse**:
+```json
+[
+    {
+        "id": 1,
+        "name": "Nid de poule",
+        "description": "Trou dans la chaussée",
+        "icon": "pothole-icon"
+    }
+]
+```
+
+### Points Sensibles
+
+#### Créer un point sensible
+**Endpoint**: `POST /api/sensitive-points/`
 
 **Payload**:
 ```json
 {
-    "phone_number": "0123456789",
-    "password": "votreMotDePasse",
-    "email": "user@example.com"
+    "problem_type": 1,
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "sector": "Centre-ville",
+    "description": "Large nid de poule dangereux"
 }
 ```
 
 **Réponse**:
 ```json
 {
-    "refresh": "token_refresh...",
-    "access": "token_access...",
-    "user_id": 1,
-    "phone_number": "0123456789"
+    "id": 1,
+    "created_by": "0123456789",
+    "problem_type": {
+        "id": 1,
+        "name": "Nid de poule",
+        "description": "Trou dans la chaussée",
+        "icon": "pothole-icon"
+    },
+    "latitude": 48.8566,
+    "longitude": 2.3522,
+    "sector": "Centre-ville",
+    "description": "Large nid de poule dangereux",
+    "status": "PENDING",
+    "created_at": "2024-11-12T10:30:00Z",
+    "updated_at": "2024-11-12T10:30:00Z",
+    "images": []
 }
 ```
 
-### Connexion
+#### Ajouter une image à un point
+**Endpoint**: `POST /api/sensitive-points/{id}/add_image/`
 
-**Endpoint**: `POST /api/login/`
+**Payload**: `multipart/form-data`
+```
+image: [fichier image]
+description: "Vue du nid de poule"
+```
+
+#### Filtrer les points sensibles
+**Endpoint**: `GET /api/sensitive-points/?problem_type=1&lat=48.8566&lng=2.3522&radius=1000`
+
+Paramètres de filtrage:
+- `problem_type`: ID du type de problème
+- `lat`: Latitude du centre de recherche
+- `lng`: Longitude du centre de recherche
+- `radius`: Rayon de recherche en mètres
+
+#### Mettre à jour le statut
+**Endpoint**: `POST /api/sensitive-points/{id}/update_status/`
 
 **Payload**:
 ```json
 {
-    "phone_number": "0123456789",
-    "password": "votreMotDePasse"
-}
-```
-
-**Réponse**:
-```json
-{
-    "refresh": "token_refresh...",
-    "access": "token_access...",
-    "user_id": 1,
-    "phone_number": "0123456789"
+    "status": "IN_PROGRESS"
 }
 ```
 
 ## 🔌 WebSocket
 
-### Connection WebSocket
+[Section WebSocket existante...]
 
-URL de connexion: `ws://votre-domaine/ws/notifications/`
+### Nouvelles Notifications WebSocket pour les Points Sensibles
 
-### Messages WebSocket
-
-Les notifications sont envoyées dans le format suivant:
-
-#### Notification d'inscription réussie
+#### Notification de nouveau point sensible
 ```json
 {
-    "type": "user.registered",
-    "status": "success",
-    "user_id": 1,
-    "phone_number": "0123456789",
-    "message": "Nouvel utilisateur inscrit"
-}
-```
-
-#### Notification de connexion réussie
-```json
-{
-    "type": "user.login",
-    "status": "success",
-    "user_id": 1,
-    "phone_number": "0123456789",
-    "message": "Utilisateur connecté"
+    "type": "sensitive_point.created",
+    "message": "Nouveau point sensible signalé dans Centre-ville",
+    "point_id": 1,
+    "sector": "Centre-ville"
 }
 ```
 
@@ -124,71 +151,45 @@ Les notifications sont envoyées dans le format suivant:
 ### Avec JavaScript
 
 ```javascript
-// Connexion WebSocket
-const socket = new WebSocket('ws://localhost:8000/ws/notifications/');
+// Exemple précédent...
 
-socket.onopen = function(e) {
-    console.log('Connexion WebSocket établie');
-};
-
-socket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
-    console.log('Message reçu:', data);
-};
-
-// Exemple d'appel API avec fetch
-async function register(userData) {
+// Création d'un point sensible
+async function createSensitivePoint(pointData) {
     try {
-        const response = await fetch('http://localhost:8000/api/register/', {
+        const response = await fetch('http://localhost:8000/api/sensitive-points/', {
             method: 'POST',
             headers: {
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(userData)
+            body: JSON.stringify(pointData)
         });
         const data = await response.json();
-        console.log('Inscription réussie:', data);
+        console.log('Point sensible créé:', data);
     } catch (error) {
         console.error('Erreur:', error);
     }
 }
-```
 
-### Avec Python
-
-```python
-import websockets
-import asyncio
-import json
-import requests
-
-# Appel API REST
-def register_user(phone_number, password):
-    response = requests.post(
-        'http://localhost:8000/api/register/',
-        json={
-            'phone_number': phone_number,
-            'password': password
-        }
-    )
-    return response.json()
-
-# Connection WebSocket
-async def connect_websocket():
-    uri = "ws://localhost:8000/ws/notifications/"
-    async with websockets.connect(uri) as websocket:
-        while True:
-            message = await websocket.recv()
-            print(f"< {message}")
-
-# Utilisation
-if __name__ == "__main__":
-    # Exemple d'inscription
-    result = register_user("0123456789", "password123")
-    print(result)
+// Ajout d'une image
+async function addImage(pointId, imageFile) {
+    const formData = new FormData();
+    formData.append('image', imageFile);
     
-    # Écoute des notifications
-    asyncio.get_event_loop().run_until_complete(connect_websocket())
+    try {
+        const response = await fetch(`http://localhost:8000/api/sensitive-points/${pointId}/add_image/`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData
+        });
+        const data = await response.json();
+        console.log('Image ajoutée:', data);
+    } catch (error) {
+        console.error('Erreur:', error);
+    }
+}
 ```
 
 ## 🛠️ Environnement de développement
@@ -200,30 +201,22 @@ DEBUG=True
 SECRET_KEY=votre_clef_secrete
 ALLOWED_HOSTS=localhost,127.0.0.1
 REDIS_URL=redis://localhost:6379
+POSTGIS_DATABASE=nom_de_votre_base
 ```
 
 ## 📝 Tests
 
-Pour exécuter les tests :
-```bash
-python manage.py test
-```
+[Section tests existante reste identique...]
 
 ## 🔒 Sécurité
 
-- Les mots de passe sont hashés avec Argon2
-- Utilisation de JWT pour l'authentification
-- Protection CSRF activée
-- Validation des données entrantes
+[Section sécurité existante...]
+- Validation géospatiale des coordonnées
 
 ## 🤝 Contribution
 
-1. Forkez le projet
-2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
-3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
-4. Poussez vers la branche (`git push origin feature/AmazingFeature`)
-5. Ouvrez une Pull Request
+[Section contribution existante reste identique...]
 
 ## 📄 License
 
-Ce projet est sous licence MIT. Voir le fichier `LICENSE` pour plus de détails.
+[Section licence existante reste identique...]

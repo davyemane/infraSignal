@@ -1,5 +1,9 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
+from django.contrib.gis.db import models as gis_models
+from django.contrib.gis.geos import Point
+from django.conf import settings
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, phone_number, password=None, **extra_fields):
@@ -44,3 +48,56 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):  # Inherit from Permission
     def has_module_perms(self, app_label):
         # Simplified: Grant access to any app if user is superuser
         return self.is_superuser
+
+
+class ProblemType(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    icon = models.CharField(max_length=100)  # Pour stocker le nom/chemin de l'icône
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class SensitivePoint(models.Model):
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='sensitive_points'
+    )
+    problem_type = models.ForeignKey(
+        ProblemType,
+        on_delete=models.PROTECT,
+        related_name='sensitive_points'
+    )
+    location = gis_models.PointField()  # Stocke les coordonnées lat/lng
+    sector = models.CharField(max_length=255)
+    description = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', 'En attente'),
+            ('IN_PROGRESS', 'En cours'),
+            ('RESOLVED', 'Résolu'),
+            ('CANCELED', 'Annulé')
+        ],
+        default='PENDING'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.problem_type} - {self.sector}"
+
+class PointImage(models.Model):
+    sensitive_point = models.ForeignKey(
+        SensitivePoint,
+        on_delete=models.CASCADE,
+        related_name='images'
+    )
+    image = models.ImageField(upload_to='sensitive_points/')
+    description = models.CharField(max_length=255, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.sensitive_point}"

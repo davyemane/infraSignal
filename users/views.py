@@ -1,13 +1,88 @@
 # views.py
-from rest_framework import generics, status
+from rest_framework import generics,viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from django.contrib.auth import authenticate
-from .serializers import UserSerializer
-from .models import CustomUser
+from .serializers import *
+from .models import *
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.decorators import action
+from django.contrib.gis.geos import Point
+from django.contrib.gis.measure import D
+from asgiref.sync import async_to_sync
+from .serializers import (
+    SensitivePointSerializer,
+    ProblemTypeSerializer,
+    PointImageSerializer
+)
+
+class ProblemTypeViewSet(viewsets.ModelViewSet):
+    queryset = ProblemType.objects.all()
+    serializer_class = ProblemTypeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+class SensitivePointViewSet(viewsets.ModelViewSet):
+    serializer_class = SensitivePointSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get_queryset(self):
+        queryset = SensitivePoint.objects.all()
+        
+        # Filtrage par type de problème
+        problem_type = self.request.query_params.get('problem_type', None)
+        if problem_type:
+            queryset = queryset.filter(problem_type=problem_type)
+        
+        # Filtrage par rayon
+        lat = self.request.query_params.get('lat', None)
+        lng = self.request.query_params.get('lng', None)
+        radius = self.request.query_params.get('radius', None)  # en mètres
+        
+        if all([lat, lng, radius]):
+            point = Point(float(lng), float(lat))
+            queryset = queryset.filter(location__distance_lte=(point, D(m=float(radius))))
+        
+        return queryset
+
+    def perform_create(self, serializer):
+        point = serializer.save(created_by=self.request.user)
+        # Envoyer une notification via WebSocket
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            "notification_group",
+            {
+                "type": "send_notification",
+                "message": f"Nouveau point sensible signalé dans {point.sector}"
+            }
+        )
+
+    @action(detail=True, methods=['post'])
+    def add_image(self, request, pk=None):
+        point = self.get_object()
+        serializer = PointImageSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            serializer.save(sensitive_point=point)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
+    def update_status(self, request, pk=None):
+        point = self.get_object()
+        new_status = request.data.get('status')
+        
+        if new_status in dict(SensitivePoint.status.field.choices):
+            point.status = new_status
+            point.save()
+            return Response({'status': new_status})
+        return Response(
+            {'error': 'Invalid status'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 class NotificationMixin:
     def send_notification(self, type_message, content):

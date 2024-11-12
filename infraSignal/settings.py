@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     'users',
     
     
+    'django.contrib.gis',
     'rest_framework',
+    'corsheaders',    
     'rest_framework.authtoken',
     'channels',
     'django.contrib.admin',
@@ -111,12 +113,12 @@ WSGI_APPLICATION = 'infraSignal.wsgi.application'
 # }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'infraSignal',
         'USER': 'davy',
-        'PASSWORD': 'Felicien@2002',
+        'PASSWORD': 'felicien@2002',
         'HOST': 'localhost',
-        'PORT': '3306',
+        'PORT': '5432',
     }
 }
 
