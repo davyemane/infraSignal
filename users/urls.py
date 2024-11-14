@@ -9,5 +9,6 @@ router.register(r'problem-types', ProblemTypeViewSet, basename='problem-type')
 urlpatterns = [
     path('register/', RegisterUserView.as_view(), name='register'),
     path('login/', LoginUserView.as_view(), name='login'),
+    path('token/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('', include(router.urls)),
 ]

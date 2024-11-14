@@ -93,11 +93,11 @@ class PointImage(models.Model):
     sensitive_point = models.ForeignKey(
         SensitivePoint,
         on_delete=models.CASCADE,
-        related_name='images'
+        related_name='files'
     )
-    image = models.ImageField(upload_to='sensitive_points/')
+    file = models.FileField(upload_to='sensitive_points/')  # Remplace 'ImageField' par 'FileField' si vous voulez accepter d'autres types de fichiers
     description = models.CharField(max_length=255, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Image for {self.sensitive_point}"
+        return f"File for {self.sensitive_point}"

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import CustomUser  # Importer le modèle CustomUser
+from .models import *  # Importer le modèle CustomUser
 
 # Personnalisation de l'interface d'administration pour le modèle CustomUser
 class CustomUserAdmin(UserAdmin):
@@ -28,4 +28,7 @@ class CustomUserAdmin(UserAdmin):
     ordering = ('phone_number',)
 
 # Enregistrement du modèle CustomUser avec son admin personnalisé
-admin.site.register(CustomUser, CustomUserAdmin)
+admin.site.register(CustomUser, CustomUserAdmin )
+admin.site.register(SensitivePoint)
+admin.site.register(ProblemType)
+admin.site.register(PointImage)

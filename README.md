@@ -1,8 +1,23 @@
-# API de Gestion des Utilisateurs et Points Sensibles avec WebSocket
+# 🛣️ InfraSignal API
 
-Cette API permet de gérer l'authentification des utilisateurs, les points sensibles sur la carte et inclut des fonctionnalités de notifications en temps réel via WebSocket.
+Une API complète pour la gestion des utilisateurs et des points sensibles d'infrastructure avec support WebSocket pour les notifications en temps réel.
 
-## 📋 Prérequis
+## 📋 Table des matières
+
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Documentation API](#documentation-api)
+  - [Authentification](#authentification)
+  - [Points Sensibles](#points-sensibles)
+  - [WebSocket](#websocket)
+- [Exemples d'utilisation](#exemples-dutilisation)
+- [Tests](#tests)
+- [Contribution](#contribution)
+- [Sécurité](#sécurité)
+- [License](#license)
+
+## Prérequis
 
 - Python 3.8+
 - Django 4.0+
@@ -10,66 +25,84 @@ Cette API permet de gérer l'authentification des utilisateurs, les points sensi
 - Redis (pour les WebSockets)
 - PostGIS (pour les fonctionnalités géospatiales)
 
-## 🚀 Installation
+## Installation
 
-1. Clonez le dépôt
+1. **Clonez le dépôt**
 ```bash
-git clone [votre-repo]
-cd [infraSignal]
+git clone https://github.com/davyemane/infraSignal.git
+cd infraSignal
 ```
 
-2. Créez un environnement virtuel
+2. **Créez l'environnement virtuel**
 ```bash
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
-.\venv\Scripts\activate  # Windows
+
+# Linux/Mac
+source venv/bin/activate
+
+# Windows
+.\venv\Scripts\activate
 ```
 
-3. Installez les dépendances
+3. **Installez les dépendances**
 ```bash
 pip install -r requirements.txt
 ```
 
-4. Configurez la base de données
+4. **Configurez la base de données**
 ```bash
 python manage.py migrate
 ```
 
-5. Lancez le serveur
+5. **Lancez le serveur**
 ```bash
 python manage.py runserver
 ```
 
-## 🔑 Authentification API
+## Configuration
 
-[Section authentification existante reste identique...]
+### Variables d'environnement
 
-## 📍 API Points Sensibles
+Créez un fichier `.env` à la racine du projet :
 
-### Types de Problèmes
+```env
+DEBUG=True
+SECRET_KEY=votre_clef_secrete
+ALLOWED_HOSTS=localhost,127.0.0.1
+REDIS_URL=redis://localhost:6379
+POSTGIS_DATABASE=nom_de_votre_base
+```
 
-#### Lister les types de problèmes
-**Endpoint**: `GET /api/problem-types/`
+## Documentation API
 
-**Réponse**:
+### Authentification
+
+#### Inscription
+`POST /api/register/`
 ```json
-[
-    {
-        "id": 1,
-        "name": "Nid de poule",
-        "description": "Trou dans la chaussée",
-        "icon": "pothole-icon"
-    }
-]
+{
+    "phone_number": "0123456789",
+    "password": "votreMotDePasse",
+    "email": "user@example.com"
+}
+```
+
+#### Connexion
+`POST /api/login/`
+```json
+{
+    "phone_number": "0123456789",
+    "password": "votreMotDePasse"
+}
 ```
 
 ### Points Sensibles
 
-#### Créer un point sensible
-**Endpoint**: `POST /api/sensitive-points/`
+#### Liste des types de problèmes
+`GET /api/problem-types/`
 
-**Payload**:
+#### Création d'un point sensible
+`POST /api/sensitive-points/`
 ```json
 {
     "problem_type": 1,
@@ -80,143 +113,82 @@ python manage.py runserver
 }
 ```
 
-**Réponse**:
-```json
-{
-    "id": 1,
-    "created_by": "0123456789",
-    "problem_type": {
-        "id": 1,
-        "name": "Nid de poule",
-        "description": "Trou dans la chaussée",
-        "icon": "pothole-icon"
-    },
-    "latitude": 48.8566,
-    "longitude": 2.3522,
-    "sector": "Centre-ville",
-    "description": "Large nid de poule dangereux",
-    "status": "PENDING",
-    "created_at": "2024-11-12T10:30:00Z",
-    "updated_at": "2024-11-12T10:30:00Z",
-    "images": []
-}
+#### Ajout d'image
+`POST /api/sensitive-points/{id}/add_image/`
 ```
-
-#### Ajouter une image à un point
-**Endpoint**: `POST /api/sensitive-points/{id}/add_image/`
-
-**Payload**: `multipart/form-data`
-```
+Content-Type: multipart/form-data
 image: [fichier image]
 description: "Vue du nid de poule"
 ```
 
-#### Filtrer les points sensibles
-**Endpoint**: `GET /api/sensitive-points/?problem_type=1&lat=48.8566&lng=2.3522&radius=1000`
+### WebSocket
 
-Paramètres de filtrage:
-- `problem_type`: ID du type de problème
-- `lat`: Latitude du centre de recherche
-- `lng`: Longitude du centre de recherche
-- `radius`: Rayon de recherche en mètres
-
-#### Mettre à jour le statut
-**Endpoint**: `POST /api/sensitive-points/{id}/update_status/`
-
-**Payload**:
-```json
-{
-    "status": "IN_PROGRESS"
-}
+#### Connection
+```javascript
+const socket = new WebSocket('ws://votre-domaine/ws/notifications/');
 ```
 
-## 🔌 WebSocket
-
-[Section WebSocket existante...]
-
-### Nouvelles Notifications WebSocket pour les Points Sensibles
-
-#### Notification de nouveau point sensible
+#### Format des notifications
 ```json
 {
     "type": "sensitive_point.created",
-    "message": "Nouveau point sensible signalé dans Centre-ville",
+    "message": "Nouveau point sensible signalé",
     "point_id": 1,
     "sector": "Centre-ville"
 }
 ```
 
-## 💻 Exemple d'utilisation
+## Exemples d'utilisation
 
-### Avec JavaScript
-
+### JavaScript/React
 ```javascript
-// Exemple précédent...
+// Connection WebSocket
+const socket = new WebSocket('ws://localhost:8000/ws/notifications/');
 
 // Création d'un point sensible
-async function createSensitivePoint(pointData) {
-    try {
-        const response = await fetch('http://localhost:8000/api/sensitive-points/', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(pointData)
-        });
-        const data = await response.json();
-        console.log('Point sensible créé:', data);
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
-}
-
-// Ajout d'une image
-async function addImage(pointId, imageFile) {
-    const formData = new FormData();
-    formData.append('image', imageFile);
-    
-    try {
-        const response = await fetch(`http://localhost:8000/api/sensitive-points/${pointId}/add_image/`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-            body: formData
-        });
-        const data = await response.json();
-        console.log('Image ajoutée:', data);
-    } catch (error) {
-        console.error('Erreur:', error);
-    }
+async function createSensitivePoint(pointData, token) {
+    const response = await fetch('http://localhost:8000/api/sensitive-points/', {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(pointData)
+    });
+    return response.json();
 }
 ```
 
-## 🛠️ Environnement de développement
+## Tests
 
-Variables d'environnement nécessaires dans `.env`:
+```bash
+# Exécuter tous les tests
+python manage.py test
 
-```env
-DEBUG=True
-SECRET_KEY=votre_clef_secrete
-ALLOWED_HOSTS=localhost,127.0.0.1
-REDIS_URL=redis://localhost:6379
-POSTGIS_DATABASE=nom_de_votre_base
+# Exécuter les tests d'une application spécifique
+python manage.py test app_name
 ```
 
-## 📝 Tests
+## Sécurité
 
-[Section tests existante reste identique...]
-
-## 🔒 Sécurité
-
-[Section sécurité existante...]
+- Hachage des mots de passe avec Argon2
+- Authentification JWT
+- Protection CSRF
+- Validation des données et coordonnées géospatiales
 - Validation géospatiale des coordonnées
 
-## 🤝 Contribution
+## Contribution
 
-[Section contribution existante reste identique...]
+1. Forkez le projet
+2. Créez votre branche (`git checkout -b feature/AmazingFeature`)
+3. Committez vos changements (`git commit -m 'Add some AmazingFeature'`)
+4. Poussez vers la branche (`git push origin feature/AmazingFeature`)
+5. Ouvrez une Pull Request
 
-## 📄 License
+## License
 
-[Section licence existante reste identique...]
+<!-- Ce projet est sous licence UIECC. Voir le fichier [`LICENSE`](LICENSE) pour plus de détails. -->
+
+---
+
+Développé avec ❤️ par [davyemane](https://github.com/davyemane)

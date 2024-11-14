@@ -10,8 +10,7 @@ class ProblemTypeSerializer(serializers.ModelSerializer):
 class PointImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PointImage
-        fields = ['id', 'image', 'description', 'uploaded_at']
-
+        fields = ['id', 'sensitive_point', 'file', 'description', 'uploaded_at']
 class SensitivePointSerializer(serializers.ModelSerializer):
     images = PointImageSerializer(many=True, read_only=True)
     created_by = serializers.ReadOnlyField(source='created_by.phone_number')
