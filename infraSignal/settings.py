@@ -114,10 +114,10 @@ WSGI_APPLICATION = 'infraSignal.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'infraSignal',
+        'NAME': 'infrasignal',
         'USER': 'davy',
-        'PASSWORD': 'felicien@2002',
-        'HOST': 'localhost',
+        'PASSWORD': 'kCHXyubZL50pOotUar9Y0UKUy6XpkiV7',
+        'HOST': 'dpg-csrqfqhopnds73ag4e1g-a',
         'PORT': '5432',
     }
 }
