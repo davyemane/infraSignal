@@ -12,32 +12,31 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import dj_database_url
-
-# Utilisez l'URL de base de données externe
-DATABASE_URL = "postgresql://davy:kCHXyubZL50pOotUar9Y0UKUy6XpkiV7@dpg-csrqfqhopnds73ag4e1g-a.oregon-postgres.render.com/infrasignal"  # L'URL externe fournie par Render
-
+import os
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Utilisez l'URL de base de données externe
+DATABASE_URL = "postgresql://davy:kCHXyubZL50pOotUar9Y0UKUy6XpkiV7@dpg-csrqfqhopnds73ag4e1g-a.oregon-postgres.render.com/infrasignal"
 
 # Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-2_2=z-$^mybn4i2e)j83iysox(k5oxti0bkubf3l-#zx@-33j-'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'infrasignal.onrender.com',
+    'localhost',
+    '127.0.0.1',
+    '*'
+]
 
 # Application definition
-
 INSTALLED_APPS = [
     'users',
-    
-    
     'django.contrib.gis',
     'rest_framework',
     'corsheaders',    
@@ -52,6 +51,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Ajout du middleware CORS en premier
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -61,29 +61,65 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Configuration CORS
+CORS_ALLOWED_ORIGINS = [
+    "https://infrasignal.onrender.com",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "*"
+]
 
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
+
+# REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',  # Autorise l'accès sans authentification
+        'rest_framework.permissions.AllowAny',
     ],
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 }
-AUTHENTICATION_BACKENDS = ['users.backends.PhoneNumberAuthBackend']
 
+# Authentication
+AUTHENTICATION_BACKENDS = ['users.backends.PhoneNumberAuthBackend']
+AUTH_USER_MODEL = 'users.CustomUser'
+
+# Channels et WebSocket
 ASGI_APPLICATION = 'infraSignal.asgi.application'
+
+# Redis configuration
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379')
 
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],  # Configuration de Redis
+            'hosts': ['redis://red-csrruod2ng1s73acudj0:6379'],
         },
     },
 }
-
-
 
 ROOT_URLCONF = 'infraSignal.urls'
 
@@ -105,36 +141,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'infraSignal.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/3.2/ref/settings/#databases
-
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
-#         'NAME': 'infrasignal',
-#         'USER': 'davy',
-#         'PASSWORD': 'kCHXyubZL50pOotUar9Y0UKUy6XpkiV7',
-#         'HOST': 'dpg-csrqfqhopnds73ag4e1g-a',
-#         'PORT': '5432',
-#     }
-# }
-
 DATABASES = {
     'default': dj_database_url.config(
         default=DATABASE_URL,
         engine='django.contrib.gis.db.backends.postgis',
     )
 }
-# Password validation
-# https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
+# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -150,29 +165,17 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/3.2/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/3.2/howto/static-files/
-# Ajoute la configuration pour JWT
-from datetime import timedelta
-
+# JWT Settings
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Token d'accès valide 1 heure
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=2),  # Token de refresh valide 1 jour
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=2),
     'ROTATE_REFRESH_TOKENS': False,
     'BLACKLIST_AFTER_ROTATION': False,
     'UPDATE_LAST_LOGIN': False,
@@ -196,15 +199,13 @@ SIMPLE_JWT = {
     'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
 }
 
-import os
+# Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Ajoutez cette ligne
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-
+# Media files
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# Default primary key field type
-# https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
+# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-AUTH_USER_MODEL = 'users.CustomUser'
