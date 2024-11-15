@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 """
 
 from pathlib import Path
+import dj_database_url
+
+# Utilisez l'URL de base de données externe
+DATABASE_URL = "postgresql://davy:kCHXyubZL50pOotUar9Y0UKUy6XpkiV7@dpg-csrqfqhopnds73ag4e1g-a.oregon-postgres.render.com/infrasignal"  # L'URL externe fournie par Render
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -110,18 +115,23 @@ WSGI_APPLICATION = 'infraSignal.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.contrib.gis.db.backends.postgis',
+#         'NAME': 'infrasignal',
+#         'USER': 'davy',
+#         'PASSWORD': 'kCHXyubZL50pOotUar9Y0UKUy6XpkiV7',
+#         'HOST': 'dpg-csrqfqhopnds73ag4e1g-a',
+#         'PORT': '5432',
+#     }
+# }
+
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.contrib.gis.db.backends.postgis',
-        'NAME': 'infrasignal',
-        'USER': 'davy',
-        'PASSWORD': 'kCHXyubZL50pOotUar9Y0UKUy6XpkiV7',
-        'HOST': 'dpg-csrqfqhopnds73ag4e1g-a',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(
+        default=DATABASE_URL,
+        engine='django.contrib.gis.db.backends.postgis',
+    )
 }
-
-
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
 
