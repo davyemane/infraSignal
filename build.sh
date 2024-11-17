@@ -8,3 +8,5 @@ python manage.py migrate
 
 # Collecter les fichiers statiques
 python manage.py collectstatic --no-input
+
+python manage.py shell -c "from scripts.create_superuser import create_superuser; create_superuser()"

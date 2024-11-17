@@ -66,7 +66,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://infrasignal.onrender.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "*"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -102,6 +101,10 @@ REST_FRAMEWORK = {
     ],
 }
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://infrasignal.onrender.com',
+    'http://infrasignal.onrender.com',
+]
 # Authentication
 AUTHENTICATION_BACKENDS = ['users.backends.PhoneNumberAuthBackend']
 AUTH_USER_MODEL = 'users.CustomUser'
